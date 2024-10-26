@@ -12,9 +12,8 @@ TODO - Add final report once done
 
 _Setup the conda environment_
 ```bash
-conda create --name incm python=3.9 -y
+conda env create -f environment.yml -n incm
 conda activate incm
-pip install -r requirements.txt
 ```
 
 _Setup precommit_
