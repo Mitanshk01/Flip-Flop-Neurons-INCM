@@ -24,4 +24,12 @@ pre-commit install
 
 ## Instructions
 
-TODO - add instructions
+### General Guidelines
+
+For each run, create a folder in the format of `src/experiments/<data or project name>/<run name>`. Create the configuration file within this folder, for example, [src/experiments/dummy_data/exp_0/config.yaml](src/experiments/dummy_data/exp_0/config.yaml). Make sure to store the final plots and metadata (such as final accuracies as JSON files) within this directory.
+
+### Training over dummy data
+
+```bash
+python -u src/train_dummy_data.py --config src/experiments/dummy_data/exp_0/config.yaml > temp.txt
+```
