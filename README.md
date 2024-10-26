@@ -30,5 +30,5 @@ For each run, create a folder in the format of `src/experiments/<data or project
 ### Training over dummy data
 
 ```bash
-python -u src/train_dummy_data.py --config src/experiments/dummy_data/exp_0/config.yaml > temp.txt
+python -u src/train_dummy_data.py --config src/experiments/dummy_data/exp_0/config.yaml
 ```

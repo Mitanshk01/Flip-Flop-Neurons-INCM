@@ -8,8 +8,10 @@ import wandb
 import argparse
 from models.flipflop import FlipFlopLayer
 from models.rnn import VanillaRNN
+from models.optim_flipflop import OptimizedFlipFlopLayer
 from common.utils import seed_models, load_config
 from common.plotting import plot_losses, plot_comparison
+from common.logging import conditional_log
 
 seed_models()
 
@@ -51,7 +53,8 @@ def train_model(
     epochs: int,
     learning_rate: float,
     logging_frequency: int,
-    wandb_active: bool = False,
+    verbose: bool,
+    wandb_active: bool,
 ) -> Tuple[List[float], List[float], float]:
 
     criterion = nn.MSELoss()
@@ -91,10 +94,11 @@ def train_model(
         val_losses.append(avg_val_loss)
 
         if (epoch + 1) % logging_frequency == 0:
-            print(
+            conditional_log(
                 f"Epoch [{epoch + 1}/{epochs}], "
                 f"Train Loss: {avg_train_loss:.4f}, "
-                f"Validation Loss: {avg_val_loss:.4f}"
+                f"Validation Loss: {avg_val_loss:.4f}",
+                verbose,
             )
 
         if wandb_active:
@@ -120,7 +124,7 @@ def run_benchmark(config_path: str):
     output_directory = config["output_directory"]
     training_size = config["training_size"]
     validation_size = config["validation_size"]
-
+    verbose_active = config.get("verbose", False)
     wandb_active = config.get("wandb", False)
     if wandb_active:
         wandb.init(project=config["wandb_project"], name=config["wandb_run"])
@@ -131,6 +135,9 @@ def run_benchmark(config_path: str):
 
     # Create models
     flipflop_model = FlipFlopLayer(input_size, hidden_size, output_size, device)
+    optim_flipflop_model = OptimizedFlipFlopLayer(
+        input_size, hidden_size, output_size, device
+    )
     rnn_model = VanillaRNN(input_size, hidden_size, output_size, device)
 
     # Create datasets
@@ -149,6 +156,19 @@ def run_benchmark(config_path: str):
         epochs,
         learning_rate,
         logging_frequency,
+        verbose_active,
+        wandb_active,
+    )
+
+    print("Training Optimized FlipFlop model...")
+    optim_ff_train_losses, optim_ff_val_losses, optim_ff_time = train_model(
+        optim_flipflop_model,
+        train_loader,
+        val_loader,
+        epochs,
+        learning_rate,
+        logging_frequency,
+        verbose_active,
         wandb_active,
     )
 
@@ -160,24 +180,33 @@ def run_benchmark(config_path: str):
         epochs,
         learning_rate,
         logging_frequency,
+        verbose_active,
         wandb_active,
     )
 
     print(f"\nTraining Times:")
     print(f"FlipFlop: {ff_time:.2f} seconds")
+    print(f"Optimized FlipFlop: {optim_ff_time:.2f} seconds")
     print(f"RNN: {rnn_time:.2f} seconds")
 
     print(f"\nFinal Validation Losses:")
     print(f"FlipFlop: {ff_val_losses[-1]:.6f}")
+    print(f"Optimized FlipFlop: {optim_ff_val_losses[-1]:.6f}")
     print(f"RNN: {rnn_val_losses[-1]:.6f}")
 
     # Save loss plots
     plot_losses(ff_train_losses, ff_val_losses, "FlipFlop", output_directory)
+    plot_losses(
+        optim_ff_train_losses,
+        optim_ff_val_losses,
+        "Optimized_FlipFlop",
+        output_directory,
+    )
     plot_losses(rnn_train_losses, rnn_val_losses, "RNN", output_directory)
     plot_comparison(
-        [ff_train_losses, rnn_train_losses],
-        [ff_val_losses, rnn_val_losses],
-        ["FlipFlop", "RNN"],
+        [ff_train_losses, optim_ff_train_losses, rnn_train_losses],
+        [ff_val_losses, optim_ff_val_losses, rnn_val_losses],
+        ["FlipFlop", "Optimized_FlipFlop", "RNN"],
         output_directory,
     )
 

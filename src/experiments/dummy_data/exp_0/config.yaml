@@ -12,6 +12,7 @@ validation_size: 200
 logging_frequency: 25
 output_directory: "src/experiments/dummy_data/exp_0"
 
+verbose: true
 wandb: false
 wandb_project: dummy_data_training
 wandb_run: exp_0
