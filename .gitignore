@@ -1,0 +1,29 @@
+# Any of you rfiles that you don't want to pust to github
+dev-*
+
+# Model files
+*.pt
+
+# The data dir
+src/data/*
+
+# manually created temp files
+*temp*
+
+# Editors
+.vscode
+.idea
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Ignore vim files:
+*~
+*.swp
+*.swo
