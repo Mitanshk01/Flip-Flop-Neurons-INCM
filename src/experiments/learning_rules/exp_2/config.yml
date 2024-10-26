@@ -1,0 +1,23 @@
+# Model parameters
+hidden_size: 64
+batch_size: 16
+grad_clip: true
+grad_clip_norm: 1.0
+
+# Training parameters
+epochs: 1000
+learning_rate: 0.001
+
+# Dataset parameters
+num_signals_per_class: 64
+num_classes: 2        # Of which the first is set to be the actual
+noise_std: 0.05       # Standard deviation for Gaussian noise
+seq_length: 64
+
+logging_frequency: 50
+output_directory: "src/experiments/learning_rules/exp_2"
+
+verbose: true
+wandb: false
+wandb_project: dynamic_learning_rules
+wandb_run: exp_2

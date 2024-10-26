@@ -1,0 +1,16 @@
+vocab_size: 20000
+max_length: 256
+embedding_dim: 64
+hidden_size: 164
+batch_size: 64
+epochs: 50
+learning_rate: 0.001
+logging_frequency: 5
+verbose: true
+wandb: false
+wandb_project: "imdb-sentiment"
+wandb_run: "larger_params_1"
+
+grad_clip: true
+grad_clip_norm: 1.0
+output_directory: "src/experiments/sent_analysis/larger_params_1"

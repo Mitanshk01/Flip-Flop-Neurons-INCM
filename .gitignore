@@ -1,3 +1,6 @@
+# Other random stuff
+src-old
+
 # Any of you rfiles that you don't want to pust to github
 dev-*
 
@@ -8,7 +11,8 @@ dev-*
 src/data/*
 
 # manually created temp files
-*temp*
+*temp*.txt
+*temp*.py
 
 # Editors
 .vscode

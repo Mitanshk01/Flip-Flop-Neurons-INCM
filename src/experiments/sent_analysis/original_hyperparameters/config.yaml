@@ -1,0 +1,16 @@
+vocab_size: 20000
+max_length: 200
+embedding_dim: 32
+hidden_size: 100
+batch_size: 64
+epochs: 50
+learning_rate: 0.001
+logging_frequency: 5
+verbose: true
+wandb: false
+wandb_project: "imdb-sentiment"
+wandb_run: "original_hyperparameters"
+
+grad_clip: true
+grad_clip_norm: 1.0
+output_directory: "src/experiments/sent_analysis/original_hyperparameters"

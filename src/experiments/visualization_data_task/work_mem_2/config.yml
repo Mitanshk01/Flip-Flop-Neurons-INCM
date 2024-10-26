@@ -1,0 +1,29 @@
+# Model parameters
+hidden_size: 64
+batch_size: 16
+grad_clip: true
+grad_clip_norm: 1.0
+
+# Training parameters
+epochs: 5000
+learning_rate: 0.0001
+
+# Dataset parameters
+num_signals_per_class: 32
+num_classes: 2        # Of which the first is set to be the actual
+noise_std: 0.05       # Standard deviation for Gaussian noise
+seq_length: 128
+
+logging_frequency: 50
+checkpoint_saving_frequency: 50
+output_directory: "src/experiments/visualization_data_task/work_mem_2"
+checkpoint_dir: "/scratch/vineeth.bhat/incm/visualization_data_task/work_mem_2/checkpoints"
+
+verbose: true
+wandb: false
+wandb_project: visualization_data_task
+wandb_run: work_mem_2
+
+# Parameter for model internals viz
+model_internals_viz_freq: 500
+model_internals_viz_min_epoch_for_applying_freq: 499
