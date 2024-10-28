@@ -1,0 +1,23 @@
+# Model parameters
+hidden_size: 64
+batch_size: 16
+grad_clip: true
+grad_clip_norm: 1.0
+
+# Training parameters
+epochs: 500
+learning_rate: 0.001
+
+# Dataset parameters
+signals_per_class: 64
+num_classes: 2        # Two types of signals
+noise_std: 0.05       # Standard deviation for Gaussian noise
+seq_length: 100
+
+logging_frequency: 25
+output_directory: "src/experiments/signal_gen/sinusoidal_0"
+
+verbose: true
+wandb: false
+wandb_project: signal_generation
+wandb_run: sinusoidal_0

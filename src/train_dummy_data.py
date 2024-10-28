@@ -7,7 +7,7 @@ import time
 import wandb
 import argparse
 from models.flipflop import FlipFlopLayer
-from models.rnn import VanillaRNN
+from models.recurrent import VanillaRNN
 from models.optim_flipflop import OptimizedFlipFlopLayer
 from common.utils import seed_models, load_config
 from common.plotting import plot_losses, plot_comparison
@@ -73,6 +73,7 @@ def train_model(
         model.train()
         epoch_loss = 0
         for batch_x, batch_y in train_loader:
+            print(batch_x.shape, batch_y.shape)
             optimizer.zero_grad()
             output, _ = model(batch_x)
             loss = criterion(output, batch_y)
