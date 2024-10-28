@@ -131,3 +131,63 @@ class OptimizedFlipFlopLayer(nn.Module):
             outputs[:, t, :], current_hidden = self.cell(x[:, t, :], current_hidden)
 
         return outputs, current_hidden
+
+
+class SignalOptimizedFlipFlopLayer(nn.Module):
+    """Optimized RNN layer using FlipFlop cells with batch processing."""
+
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        output_size: int,
+        seq_length: int,
+        device: torch.device,
+        dtype: torch.dtype = torch.float32,
+    ):
+        super().__init__()
+        self.seq_length = seq_length
+        self.cell = OptimizedFlipFlopCell(
+            input_size, hidden_size, output_size, device, dtype
+        )
+
+    def forward(
+        self, x: torch.Tensor, hidden: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Optimized forward pass
+
+        Args:
+            x: Input tensor (batch_size, seq_len, input_size)
+            hidden: Initial hidden state
+
+        Returns:
+            (outputs, final_hidden_state) tuple
+        """
+        batch_size = x.size(0)
+
+        x = x.unsqueeze(1).repeat(
+            1, self.seq_length, 1
+        )  # [batch_size, seq_length, num_classes]
+
+        # Pre-allocate output tensor
+        outputs = torch.empty(
+            batch_size,
+            self.seq_length,
+            self.cell.output_size,
+            device=x.device,
+            dtype=x.dtype,
+        )
+
+        current_hidden = (
+            hidden
+            if hidden is not None
+            else torch.zeros(
+                batch_size, self.cell.hidden_size, device=x.device, dtype=x.dtype
+            )
+        )
+
+        # Process sequence
+        for t in range(self.seq_length):
+            outputs[:, t, :], current_hidden = self.cell(x[:, t, :], current_hidden)
+
+        return outputs, current_hidden

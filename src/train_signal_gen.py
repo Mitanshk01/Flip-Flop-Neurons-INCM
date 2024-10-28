@@ -9,7 +9,8 @@ import argparse
 from matplotlib import pyplot as plt
 import os
 from models.recurrent import SignalRNN, SignalLSTM, SignalGRU
-from common.utils import seed_models, load_config
+from models.optim_flipflop import SignalOptimizedFlipFlopLayer
+from common.utils import seed_models, load_config, get_num_params, save_dict_as_json
 from common.plotting import plot_losses, plot_comparison
 from common.logging import conditional_log
 
@@ -23,33 +24,39 @@ class SignalGenerationDataset(Dataset):
         seq_length: int,
         num_classes: int,
         noise_std: float,
+        dataset_type: str,
         device: torch.device,
     ):
         self.signals = []
         self.labels = []
 
-        # Parameters for signal generation
         for class_idx in range(num_classes):
+            if dataset_type == "sinusoidal":
+                # Random parameters for each sinusoidal signal
+                amplitude = torch.rand(1).item() * 0.5 + 0.5  # Range [0.5, 1.0]
+                frequency = torch.rand(1).item() * 2 + 1  # Range [1, 3] Hz
+                phase = torch.rand(1).item() * 2 * np.pi  # Range [0, 2π]
+                t = torch.linspace(0, 10, seq_length)
 
-            # Random parameters for each signal
-            amplitude = torch.rand(1).item() * 0.5 + 0.5  # Range [0.5, 1.0]
-            frequency = torch.rand(1).item() * 2 + 1  # Range [1, 3] Hz
-            phase = torch.rand(1).item() * 2 * np.pi  # Range [0, 2π]
+                # Generate base signal based on class
+                if class_idx % 2 == 0:
+                    # Class 0: Simple sinusoid
+                    signal = amplitude * torch.sin(2 * np.pi * frequency * t + phase)
+                else:
+                    # Class 1: Sum of two sinusoids
+                    freq2 = frequency * 2
+                    signal = amplitude * (
+                        torch.sin(2 * np.pi * frequency * t + phase)
+                        + 0.5 * torch.sin(2 * np.pi * freq2 * t + phase)
+                    )
 
-            # Time vector
-            t = torch.linspace(0, 10, seq_length)
+            elif dataset_type == "uniform":
+                # Generate signal from a uniform distribution between -1 and 1
+                signal = torch.rand(seq_length) * 2 - 1  # Range [-1, 1]
 
-            # Generate base signal based on class
-            if class_idx == 0:
-                # Class 0: Simple sinusoid
-                signal = amplitude * torch.sin(2 * np.pi * frequency * t + phase)
             else:
-                # Class 1: Sum of two sinusoids
-                freq2 = frequency * 2
-                signal = amplitude * (
-                    torch.sin(2 * np.pi * frequency * t + phase)
-                    + 0.5 * torch.sin(2 * np.pi * freq2 * t + phase)
-                )
+                # Not a valid input
+                raise ValueError(f"{dataset_type} is not a valid dataset type")
 
             # Create one-hot encoded label
             label = torch.zeros(num_classes)
@@ -65,10 +72,10 @@ class SignalGenerationDataset(Dataset):
 
         self.signals = (
             torch.stack(self.signals).unsqueeze(-1).to(device)
-        )  # [num_signals_per_class * seq_length, seq_length, 1]
+        )  # [num_signals_per_class * num_classes, seq_length, 1]
         self.labels = torch.stack(self.labels).to(
             device
-        )  # [num_signals_per_class * seq_length, num_classes]
+        )  # [num_signals_per_class * num_classes, num_classes]
 
     def __len__(self) -> int:
         return len(self.signals)
@@ -157,20 +164,25 @@ def run_signal_benchmark(config_path: str):
     epochs = config["epochs"]
     learning_rate = config["learning_rate"]
     logging_frequency = config["logging_frequency"]
+    dataset_type = config["dataset_type"]
     verbose_active = config.get("verbose", False)
     wandb_active = config.get("wandb", False)
     grad_clip = config.get("grad_clip", False)
+
     if grad_clip:
         grad_clip_norm = float(config["grad_clip_norm"])
 
     if wandb_active:
         wandb.init(project=config["wandb_project"], name=config["wandb_run"])
 
+    # Only two types of datasets are allowed
+    assert dataset_type in ["sinusoidal", "uniform"], "Dataset type is incorrect!"
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
 
     train_dataset = SignalGenerationDataset(
-        signals_per_class, seq_length, num_classes, noise_std, device
+        signals_per_class, seq_length, num_classes, noise_std, dataset_type, device
     )
     validation_indices = list(range(0, len(train_dataset), 4))
     val_dataset = Subset(
@@ -195,9 +207,12 @@ def run_signal_benchmark(config_path: str):
 
     # Models
     models = {
+        "Flip Flop": SignalOptimizedFlipFlopLayer(
+            num_classes, hidden_size, 1, seq_length, device
+        ),
         "RNN": SignalRNN(num_classes, hidden_size, 1, seq_length, device),
-        "LSTM": SignalRNN(num_classes, hidden_size, 1, seq_length, device),
-        "GRU": SignalRNN(num_classes, hidden_size, 1, seq_length, device),
+        "LSTM": SignalLSTM(num_classes, hidden_size, 1, seq_length, device),
+        "GRU": SignalGRU(num_classes, hidden_size, 1, seq_length, device),
     }
 
     results = {}
@@ -220,14 +235,43 @@ def run_signal_benchmark(config_path: str):
             wandb_active,
         )
 
+        num_params = get_num_params(model)
+
         results[model_name] = {
-            "train_losses": train_losses,
-            "val_losses": val_losses,
-            "time": training_time,
+            "train_losses": [float(val) for val in train_losses],
+            "val_losses": [float(val) for val in val_losses],
+            "min_train_loss": {
+                "epoch": int(
+                    np.max(
+                        [
+                            i
+                            for i in range(len(train_losses))
+                            if train_losses[i] == np.min(train_losses)
+                        ]
+                    )
+                ),
+                "value": float(np.min(train_losses)),
+            },
+            "min_val_loss": {
+                "epoch": int(
+                    np.max(
+                        [
+                            i
+                            for i in range(len(val_losses))
+                            if val_losses[i] == np.min(val_losses)
+                        ]
+                    )
+                ),
+                "value": float(np.min(val_losses)),
+            },
+            "time": float(training_time),
+            "num_params": int(num_params),
         }
 
         print(f"{model_name} Training Time: {training_time:.2f} seconds")
-        print(f"{model_name} Final Validation Loss: {val_losses[-1]:.6f}")
+        print(f"{model_name} Number of Parameters: {num_params}")
+        print(f"{model_name} Best Training Loss: {np.min(val_losses):.6f}")
+        print(f"{model_name} Best Validation Loss: {np.min(train_losses):.6f}")
 
         # Save individual loss plots
         plot_losses(train_losses, val_losses, model_name, output_directory)
@@ -239,6 +283,10 @@ def run_signal_benchmark(config_path: str):
         list(models.keys()),
         output_directory,
     )
+
+    # Save results
+    save_dict_as_json(results, os.path.join(output_directory, "results.json"))
+    print("Saved results.")
 
     if wandb_active:
         wandb.finish()

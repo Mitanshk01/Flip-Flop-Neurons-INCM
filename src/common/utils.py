@@ -3,6 +3,8 @@ import random
 import numpy as np
 import torch
 import yaml
+import torch.nn as nn
+import json
 
 
 def seed_models(seed=42):
@@ -25,3 +27,12 @@ def load_config(config_path: str):
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
     return config
+
+
+def get_num_params(model: nn.Module):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def save_dict_as_json(data, file_path):
+    with open(file_path, "w") as json_file:
+        json.dump(data, json_file, indent=4)
