@@ -5,20 +5,20 @@ grad_clip: true
 grad_clip_norm: 1.0
 
 # Training parameters
-epochs: 500
+epochs: 1000
 learning_rate: 0.001
 
 # Dataset parameters
-dataset_type: "sinusoidal" # "sinusoidal" or "uniform"
+dataset_type: "uniform" # "sinusoidal" or "uniform"
 signals_per_class: 64
-num_classes: 5
+num_classes: 2        # Two types of signals
 noise_std: 0.05       # Standard deviation for Gaussian noise
 seq_length: 100
 
-logging_frequency: 25
-output_directory: "src/experiments/signal_gen/sinusoidal_1"
+logging_frequency: 50
+output_directory: "src/experiments/signal_gen/uniform_0"
 
 verbose: true
 wandb: false
 wandb_project: signal_generation
-wandb_run: sinusoidal_1
+wandb_run: uniform_0

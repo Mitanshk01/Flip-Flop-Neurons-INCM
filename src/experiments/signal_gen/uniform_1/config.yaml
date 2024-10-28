@@ -1,0 +1,23 @@
+# Model parameters
+hidden_size: 128 # Higher than exp 0 for overfitting better
+batch_size: 8
+grad_clip: false
+
+# Training parameters
+epochs: 1000
+learning_rate: 0.0005
+
+# Dataset parameters
+dataset_type: "uniform" # "sinusoidal" or "uniform"
+signals_per_class: 64
+num_classes: 2        # Two types of signals
+noise_std: 0.01       # Lower gaussian noise for seeing whether it can actually overfit
+seq_length: 100
+
+logging_frequency: 50
+output_directory: "src/experiments/signal_gen/uniform_1"
+
+verbose: true
+wandb: false
+wandb_project: signal_generation
+wandb_run: uniform_1
