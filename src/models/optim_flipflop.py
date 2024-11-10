@@ -191,3 +191,81 @@ class SignalOptimizedFlipFlopLayer(nn.Module):
             outputs[:, t, :], current_hidden = self.cell(x[:, t, :], current_hidden)
 
         return outputs, current_hidden
+
+
+class SentimentOptimizedFlipFlopLayer(nn.Module):
+    """Optimized FlipFlop layer modified for sentiment analysis with embedding."""
+
+    def __init__(
+        self,
+        vocab_size: int,
+        embedding_dim: int,
+        hidden_size: int,
+        device: torch.device,
+        dtype: torch.dtype = torch.float32,
+    ):
+        super().__init__()
+        self.device = device
+        self.hidden_size = hidden_size
+
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+
+        self.cell = OptimizedFlipFlopCell(
+            input_size=embedding_dim,
+            hidden_size=hidden_size,
+            output_size=hidden_size,
+            device=device,
+            dtype=dtype,
+        )
+
+        self.fc = nn.Linear(hidden_size, 1)
+        self.sigmoid = nn.Sigmoid()
+
+        self.to(device)
+
+    def forward(
+        self, x: torch.Tensor, hidden: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass matching SentimentRNN behavior
+
+        Args:
+            x: Input tensor (batch_size, seq_len)
+            hidden: Initial hidden state
+
+        Returns:
+            (prediction, final_hidden_state) tuple
+        """
+        batch_size = x.size(0)
+        seq_length = x.size(1)
+
+        # Initialize hidden state to match SentimentRNN shape
+        if hidden is None:
+            hidden = torch.zeros(1, batch_size, self.hidden_size, device=self.device)
+
+        # Embed input
+        embedded = self.embedding(x)  # [batch_size, seq_len, embedding_dim]
+
+        # Pre-allocate output tensor
+        outputs = torch.empty(
+            batch_size,
+            seq_length,
+            self.hidden_size,
+            device=self.device,
+            dtype=embedded.dtype,
+        )
+
+        current_hidden = hidden.squeeze(0)  # Remove extra dimension for cell processing
+
+        # Process sequence
+        for t in range(seq_length):
+            outputs[:, t, :], current_hidden = self.cell(
+                embedded[:, t, :], current_hidden
+            )
+
+        # Take only the last output and pass through final layers
+        final_output = self.fc(outputs[:, -1, :])
+        prediction = self.sigmoid(final_output)
+
+        final_hidden = current_hidden.unsqueeze(0)
+
+        return prediction, final_hidden
